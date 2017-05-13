@@ -1,6 +1,7 @@
 package es.upm.dit.adsw.ej5;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -11,7 +12,7 @@ import java.util.List;
  */
 public class AppleListMonitor {
     private final List<Apple> appleList = new ArrayList<>();    // Concurrent modification
-    private RW_Monitor_0 monitor = new RW_Monitor_0();
+    private RW_Monitor_0 monitor = new RW_Monitor();
     /**
      * Tenemos una manzana mas.
      *
@@ -47,21 +48,23 @@ public class AppleListMonitor {
     }
 
     /**
-     * Informa de si hay alguna manzana cerca del segmento P1-P2.
-     *
+       * Informa de si hay alguna manzana cerca del segmento P1-P2.
+   *
      * @param P1
      * @param P2
      * @return la manzana cercana, si la hubiera; null si no.
      */
     public Apple getCloseApple(XY P1, XY P2) {
-        monitor.openReading();
-        for(Apple manzana : appleList){
-            if(manzana.getXY().isCloseTo(P1,P2)){
-                monitor.closeReading();
-                return manzana;
+        monitor.openWriting();
+        Iterator<Apple> iter = appleList.iterator();
+        while(iter.hasNext()){
+            Apple current = iter.next();
+            if(current.getXY().isCloseTo(P1,P2)){
+                monitor.closeWriting();
+                return current;
             }
         }
-        monitor.closeReading();
+        monitor.closeWriting();
         return null;
     }
 
@@ -77,11 +80,10 @@ public class AppleListMonitor {
         Apple manzana = getCloseApple(P1,P2);
         if(manzana == null){
             return null;
-        }else{
-            monitor.openReading();
-            appleList.remove(manzana);
-            monitor.closeReading();
         }
+        monitor.openWriting();
+        appleList.remove(manzana);
+        monitor.closeWriting();
         return manzana;
     }
 

@@ -22,6 +22,10 @@ public class AppleListMonitor {
     // Preguntar ¿Puede haber duplicados por superposiciones?
     public void add(Apple apple) {
         monitor.openWriting();
+        if(appleList.contains(apple)){
+            System.out.println("No se aniadio manzana");
+            monitor.closeWriting();
+        }
         appleList.add(apple);
         System.out.print("Manzana Aniadida \n");
         monitor.closeWriting();
@@ -44,7 +48,7 @@ public class AppleListMonitor {
         monitor.openWriting();
         appleList.remove(apple);
         System.out.println("La manzana ha sido eliminada");
-        monitor.closeReading();
+        monitor.closeWriting();
     }
 
     /**
@@ -55,16 +59,23 @@ public class AppleListMonitor {
      * @return la manzana cercana, si la hubiera; null si no.
      */
     public Apple getCloseApple(XY P1, XY P2) {
-        monitor.openWriting();
-        Iterator<Apple> iter = appleList.iterator();
-        while(iter.hasNext()){
-            Apple current = iter.next();
-            if(current.getXY().isCloseTo(P1,P2)){
-                monitor.closeWriting();
-                return current;
+        monitor.openReading();
+        for(Apple appleL : new ArrayList<>(appleList)){
+            if(appleL.getXY().isCloseTo(P1,P2)){
+                monitor.closeReading();
+                return appleL;
             }
         }
-        monitor.closeWriting();
+
+        /*Iterator<Apple> iter = appleList.iterator();
+        while(iter.hasNext()){
+            XY current = iter.next().getXY();
+            if(current.isCloseTo(P1,P2)){
+                monitor.closeReading();
+                return iter.next();
+            }
+        }*/
+        monitor.closeReading();
         return null;
     }
 
@@ -81,9 +92,7 @@ public class AppleListMonitor {
         if(manzana == null){
             return null;
         }
-        monitor.openWriting();
-        appleList.remove(manzana);
-        monitor.closeWriting();
+        remove(manzana);
         return manzana;
     }
 

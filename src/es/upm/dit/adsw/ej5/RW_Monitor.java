@@ -9,9 +9,11 @@ package es.upm.dit.adsw.ej5;
 
 //PREGUNTAR DIFERENCIA ENTRE PADRE E HIJO
 public class RW_Monitor extends RW_Monitor_0 {
+
     private int cola;
     private int lectores;
     private int escritores;
+    private boolean flag_espera = false;
     /**
      * Getter.
      *
@@ -37,8 +39,10 @@ public class RW_Monitor extends RW_Monitor_0 {
      */
     public synchronized void openReading() {
         //PREGUNTAR SI DEBE HABER SOLO UN LECTOR
-        System.out.printf("OpenReading PRE : Escritor : %d Cola: %d Lectores: %d \n",escritores,cola,lectores);
-        while(escritores > 0 || cola > 0){
+        System.out.printf("OpenReading PRE Entra en Espera : Escritor : %d Cola: %d Lectores: %d \n",escritores,cola,lectores);
+
+
+        while(escritores != 0 || cola != 0 || flag_espera){
             try {
                 wait();
             } catch (InterruptedException e) {
@@ -46,7 +50,7 @@ public class RW_Monitor extends RW_Monitor_0 {
             }
         }
         lectores++;
-        System.out.printf("OpenReading POST : Escritor : %d Cola: %d Lectores: %d \n",escritores,cola,lectores);
+        System.out.printf("OpenReading Puede Leer : Escritor : %d Cola: %d Lectores: %d \n",escritores,cola,lectores);
 
     }
 
@@ -56,13 +60,15 @@ public class RW_Monitor extends RW_Monitor_0 {
      * @throws IllegalMonitorStateException si no hay algun lector dentro.
      */
     public synchronized void closeReading() throws IllegalMonitorStateException {
-        System.out.println("closeReading()");
+        System.out.printf("closeReading(): ESTADO Escritor : %d Cola: %d Lectores: %d \n", escritores, cola, lectores);
+
         if(lectores == 0){
-            throw  new IllegalArgumentException();
+            System.out.printf("CloseReading() ERROR: Escritor : %d Cola: %d Lectores: %d \n", escritores, cola, lectores);
+            throw  new IllegalMonitorStateException();
         }
         lectores--;
         System.out.printf("closeReading(): Escritor : %d Cola: %d Lectores: %d \n", escritores, cola, lectores);
-        //¿DEBO NOTIFICAR?
+        notifyAll();
     }
 
     /**
@@ -70,16 +76,18 @@ public class RW_Monitor extends RW_Monitor_0 {
      * La thread que llama se queda esperando hasta que pueda entrar.
      */
     public synchronized void openWriting() {
-        System.out.println("OpenWritting");
-        System.out.printf("PREO Escritor : %d Cola: %d \n",escritores,cola);
+        System.out.printf("OpenWritting Espera Escritor : %d Cola: %d \n",escritores,cola);
 
         if(escritores != 0){
             cola++;
         }
 
-        System.out.printf("POSTO Escritor : %d Cola: %d \n",escritores,cola);
+        if(escritores == 0)
+            flag_espera = true;
 
-        while(cola != 0){
+        System.out.printf("OpenWritting Escritores : %d Cola: %d \n",escritores,cola);
+
+        while(cola != 0 || escritores != 0 || lectores != 0){
             try {
                 wait();
             } catch (InterruptedException e) {
@@ -87,7 +95,10 @@ public class RW_Monitor extends RW_Monitor_0 {
             }
         }
 
+        System.out.printf("OpenWritting Listo : %d Cola: %d \n",escritores,cola);
+
         escritores++;
+        flag_espera = false;
     }
 
     /**
@@ -97,7 +108,7 @@ public class RW_Monitor extends RW_Monitor_0 {
      */
     public synchronized void closeWriting() throws IllegalMonitorStateException {
         if(escritores == 0){
-            throw new IllegalArgumentException();
+            throw new IllegalMonitorStateException();
         }
         System.out.println("closeWriting()");
         System.out.printf("CloseWri: PRE Escritor : %d Cola: %d \n",escritores,cola);
